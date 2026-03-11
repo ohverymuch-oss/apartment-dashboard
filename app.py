@@ -14,17 +14,231 @@ from dateutil.relativedelta import relativedelta
 def check_password():
     if st.session_state.get("authenticated"):
         return True
-    st.title("🏢 부동산 실거래가 대시보드")
-    st.markdown("---")
-    col1, col2, col3 = st.columns([1, 1, 1])
-    with col2:
-        pw = st.text_input("🔒 비밀번호를 입력하세요", type="password", key="pw_input")
-        if st.button("입력", use_container_width=True):
+
+    st.markdown("""
+    <style>
+    /* 전체 페이지 기본 배경 */
+    [data-testid="stAppViewContainer"] {
+        background: #0a0e1a;
+    }
+    [data-testid="stHeader"] { background: transparent !important; }
+
+    .login-wrapper {
+        display: flex;
+        min-height: 100vh;
+        width: 100%;
+        font-family: 'Segoe UI', 'Noto Sans KR', sans-serif;
+    }
+
+    /* ── 왼쪽 이미지 패널 ── */
+    .login-left {
+        flex: 1;
+        position: relative;
+        background:
+            linear-gradient(160deg, rgba(10,14,26,0.55) 0%, rgba(10,14,26,0.15) 100%),
+            url('https://images.unsplash.com/photo-1549693578-d683be217e58?w=1200&q=80') center/cover no-repeat;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        padding: 48px;
+        min-height: 100vh;
+    }
+    .login-left-badge {
+        display: inline-block;
+        background: rgba(99,179,237,0.18);
+        border: 1px solid rgba(99,179,237,0.45);
+        color: #90cdf4;
+        font-size: 12px;
+        letter-spacing: 2.5px;
+        text-transform: uppercase;
+        padding: 6px 16px;
+        border-radius: 100px;
+        margin-bottom: 20px;
+        width: fit-content;
+    }
+    .login-left h1 {
+        color: #ffffff;
+        font-size: clamp(26px, 3vw, 38px);
+        font-weight: 700;
+        line-height: 1.35;
+        margin: 0 0 16px 0;
+    }
+    .login-left p {
+        color: rgba(255,255,255,0.72);
+        font-size: 15px;
+        line-height: 1.7;
+        margin: 0 0 40px 0;
+        max-width: 380px;
+    }
+    .stat-row {
+        display: flex;
+        gap: 32px;
+    }
+    .stat-item { color: #fff; }
+    .stat-item .num {
+        font-size: 26px;
+        font-weight: 700;
+        color: #63b3ed;
+        display: block;
+    }
+    .stat-item .label {
+        font-size: 12px;
+        color: rgba(255,255,255,0.55);
+        letter-spacing: 0.5px;
+    }
+
+    /* ── 오른쪽 로그인 패널 ── */
+    .login-right {
+        width: 480px;
+        min-width: 360px;
+        background: #ffffff;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 64px 56px;
+        min-height: 100vh;
+    }
+    .login-right .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 48px;
+    }
+    .login-right .brand-icon {
+        width: 40px; height: 40px;
+        background: linear-gradient(135deg, #2b6cb0, #63b3ed);
+        border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 20px;
+    }
+    .login-right .brand-text {
+        font-size: 15px;
+        font-weight: 700;
+        color: #1a202c;
+        letter-spacing: -0.3px;
+    }
+    .login-right h2 {
+        font-size: 28px;
+        font-weight: 700;
+        color: #1a202c;
+        margin: 0 0 8px 0;
+        letter-spacing: -0.5px;
+    }
+    .login-right .slogan {
+        font-size: 14px;
+        color: #718096;
+        margin: 0 0 40px 0;
+    }
+    .login-right .input-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #2d3748;
+        margin-bottom: 8px;
+        display: block;
+    }
+    .login-right .developer-credit {
+        margin-top: 48px;
+        padding-top: 24px;
+        border-top: 1px solid #e2e8f0;
+        font-size: 12px;
+        color: #a0aec0;
+        text-align: center;
+    }
+    .login-right .developer-credit span {
+        color: #4a5568;
+        font-weight: 600;
+    }
+
+    /* Streamlit 위젯 커스터마이징 */
+    div[data-testid="stTextInput"] input {
+        border: 1.5px solid #e2e8f0 !important;
+        border-radius: 10px !important;
+        padding: 14px 16px !important;
+        font-size: 15px !important;
+        background: #f7fafc !important;
+        transition: border-color 0.2s;
+    }
+    div[data-testid="stTextInput"] input:focus {
+        border-color: #4299e1 !important;
+        background: #fff !important;
+        box-shadow: 0 0 0 3px rgba(66,153,225,0.15) !important;
+    }
+    div[data-testid="stButton"] > button {
+        background: linear-gradient(135deg, #2b6cb0 0%, #4299e1 100%) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 10px !important;
+        padding: 14px !important;
+        font-size: 15px !important;
+        font-weight: 600 !important;
+        letter-spacing: 0.3px !important;
+        transition: opacity 0.2s, transform 0.1s !important;
+        box-shadow: 0 4px 15px rgba(66,153,225,0.4) !important;
+    }
+    div[data-testid="stButton"] > button:hover {
+        opacity: 0.92 !important;
+        transform: translateY(-1px) !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # ── 레이아웃: 왼쪽 이미지 | 오른쪽 로그인 폼 ──
+    left_col, right_col = st.columns([1.1, 0.9])
+
+    with left_col:
+        st.markdown("""
+        <div class="login-left">
+            <div class="login-left-badge">🏙️ Real Estate Intelligence</div>
+            <h1>데이터로 읽는<br>대한민국 부동산</h1>
+            <p>국토교통부 실거래가 데이터를 기반으로<br>
+            매매·전월세 트렌드를 한눈에 분석하세요.<br>
+            지역별·유형별 상세 통계를 제공합니다.</p>
+            <div class="stat-row">
+                <div class="stat-item">
+                    <span class="num">17+</span>
+                    <span class="label">광역 지자체</span>
+                </div>
+                <div class="stat-item">
+                    <span class="num">5종</span>
+                    <span class="label">부동산 유형</span>
+                </div>
+                <div class="stat-item">
+                    <span class="num">실시간</span>
+                    <span class="label">API 데이터</span>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with right_col:
+        st.markdown("""
+        <div class="login-right">
+            <div class="brand">
+                <div class="brand-icon">🏢</div>
+                <span class="brand-text">부동산 매매/전월세 실거래가 조회사이트</span>
+            </div>
+            <h2>안녕하세요 👋</h2>
+            <p class="slogan">서울 부동산 데이터 분석 대시보드에 오신 것을 환영합니다.<br>접속하려면 비밀번호를 입력해 주세요.</p>
+            <span class="input-label">🔒 비밀번호</span>
+        </div>
+        """, unsafe_allow_html=True)
+
+        pw = st.text_input("", type="password", key="pw_input", placeholder="비밀번호를 입력하세요", label_visibility="collapsed")
+        if st.button("대시보드 접속 →", use_container_width=True):
             if pw == "7601":
                 st.session_state["authenticated"] = True
                 st.rerun()
             else:
                 st.error("❌ 비밀번호가 틀렸습니다.")
+
+        st.markdown("""
+        <div style="margin-top:48px; padding-top:24px; border-top:1px solid #e2e8f0;
+                    font-size:12px; color:#a0aec0; text-align:center;">
+            Developed by <span style="color:#4a5568; font-weight:600;">KANG, SEONGIL</span><br>
+            <span style="font-size:11px;">© 2026 부동산 실거래가 대시보드</span>
+        </div>
+        """, unsafe_allow_html=True)
+
     return False
 
 if not check_password():
@@ -350,19 +564,18 @@ with st.sidebar:
     # ── 매물 설정 ────────────────────────────────────
     st.subheader("🏠 매물 설정")
 
-    # 거래유형 멀티셀렉트 (1개 이상 선택 강제)
-    selected_trades = st.multiselect(
-        "거래유형",
-        options=["매매", "전월세"],
-        default=["매매"],
-        key="trade_type_select",
-    )
-    if not selected_trades:
-        st.warning("거래유형을 하나 이상 선택하세요.")
-        selected_trades = ["매매"]
+    # 거래유형 체크박스 (복수 선택 가능)
+    st.write("거래유형")
+    cb_sale = st.checkbox("매매",   value=True,  key="cb_sale")
+    cb_rent = st.checkbox("전월세", value=False, key="cb_rent")
 
-    cb_sale = "매매"   in selected_trades
-    cb_rent = "전월세" in selected_trades
+    if not cb_sale and not cb_rent:
+        st.warning("거래유형을 하나 이상 선택하세요.")
+        cb_sale = True
+
+    selected_trades = []
+    if cb_sale: selected_trades.append("매매")
+    if cb_rent: selected_trades.append("전월세")
 
     # 부동산 유형: 선택된 거래유형 모두에 존재하는 유형만 표시
     if len(selected_trades) == 1:
@@ -397,7 +610,7 @@ with st.sidebar:
     # 전월세 포함 시 전세/월세 필터 표시
     if cb_rent:
         rent_filter = st.multiselect(
-            "전세 / 월세 구분",
+            "선택 유형",
             ["전세", "월세"],
             default=["전세", "월세"],
         )
