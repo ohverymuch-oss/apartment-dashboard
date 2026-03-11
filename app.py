@@ -30,47 +30,61 @@ if not check_password():
     st.stop()
 
 # ════════════════════════════════════════════════════
-#  🔑 API KEY (유형별 - 하드코딩)
+#  🔑 유형별 API KEY
 # ════════════════════════════════════════════════════
 API_KEYS = {
-    "아파트":           "ecf9a6cf2dabead1885a711185e726c32d298060e4a4f181afe0b8a1fd42b7c7",
-    "오피스텔":         "ecf9a6cf2dabead1885a711185e726c32d298060e4a4f181afe0b8a1fd42b7c7",
-    "연립/다세대(빌라)": "ecf9a6cf2dabead1885a711185e726c32d298060e4a4f181afe0b8a1fd42b7c7",
-    "상업업무용":        "ecf9a6cf2dabead1885a711185e726c32d298060e4a4f181afe0b8a1fd42b7c7",
+    "아파트":       "ecf9a6cf2dabead1885a711185e726c32d298060e4a4f181afe0b8a1fd42b7c7",
+    "오피스텔":     "ecf9a6cf2dabead1885a711185e726c32d298060e4a4f181afe0b8a1fd42b7c7",
+    "연립/다세대":  "ecf9a6cf2dabead1885a711185e726c32d298060e4a4f181afe0b8a1fd42b7c7",
+    "단독/다가구":  "ecf9a6cf2dabead1885a711185e726c32d298060e4a4f181afe0b8a1fd42b7c7",
+    "상업업무용":   "ecf9a6cf2dabead1885a711185e726c32d298060e4a4f181afe0b8a1fd42b7c7",
 }
 
 # ════════════════════════════════════════════════════
 #  🌐 API 엔드포인트 & XML 태그 매핑
+#
+#  ※ 단독/다가구 특이사항:
+#     - 건물명 없음 → 법정동+지번 조합으로 표시
+#     - 전용면적 없음 → 연면적(totalFloorAr) 사용
+#     - 층 정보 없음 → "-" 처리
 # ════════════════════════════════════════════════════
 PROP_CONFIG = {
     "아파트": {
-        "url":   "https://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev",
-        "tags":  {"name":"aptNm", "amount":"dealAmount", "area":"excluUseAr",
-                  "dong":"umdNm", "floor":"floor",
-                  "year":"dealYear", "month":"dealMonth", "day":"dealDay"},
+        "url":  "https://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev",
+        "tags": {"name":"aptNm",       "amount":"dealAmount", "area":"excluUseAr",
+                 "dong":"umdNm",       "floor":"floor",
+                 "year":"dealYear",    "month":"dealMonth",   "day":"dealDay"},
     },
     "오피스텔": {
-        "url":   "https://apis.data.go.kr/1613000/RTMSDataSvcOffiTrade/getRTMSDataSvcOffiTrade",
-        "tags":  {"name":"offiNm", "amount":"dealAmount", "area":"excluUseAr",
-                  "dong":"umdNm", "floor":"floor",
-                  "year":"dealYear", "month":"dealMonth", "day":"dealDay"},
+        "url":  "https://apis.data.go.kr/1613000/RTMSDataSvcOffiTrade/getRTMSDataSvcOffiTrade",
+        "tags": {"name":"offiNm",      "amount":"dealAmount", "area":"excluUseAr",
+                 "dong":"umdNm",       "floor":"floor",
+                 "year":"dealYear",    "month":"dealMonth",   "day":"dealDay"},
     },
-    "연립/다세대(빌라)": {
-        "url":   "https://apis.data.go.kr/1613000/RTMSDataSvcRHTrade/getRTMSDataSvcRHTrade",
-        "tags":  {"name":"mhouseNm", "amount":"dealAmount", "area":"excluUseAr",
-                  "dong":"umdNm", "floor":"floor",
-                  "year":"dealYear", "month":"dealMonth", "day":"dealDay"},
+    "연립/다세대": {
+        "url":  "https://apis.data.go.kr/1613000/RTMSDataSvcRHTrade/getRTMSDataSvcRHTrade",
+        "tags": {"name":"mhouseNm",    "amount":"dealAmount", "area":"excluUseAr",
+                 "dong":"umdNm",       "floor":"floor",
+                 "year":"dealYear",    "month":"dealMonth",   "day":"dealDay"},
+    },
+    "단독/다가구": {
+        "url":  "https://apis.data.go.kr/1613000/RTMSDataSvcSHTrade/getRTMSDataSvcSHTrade",
+        "tags": {"name":"jibun",       "amount":"dealAmount", "area":"totalFloorAr",
+                 "dong":"umdNm",       "floor":"_none_",
+                 "year":"dealYear",    "month":"dealMonth",   "day":"dealDay"},
+        "area_label": "연면적(㎡)",
     },
     "상업업무용": {
-        "url":   "https://apis.data.go.kr/1613000/RTMSDataSvcNrgTrade/getRTMSDataSvcNrgTrade",
-        "tags":  {"name":"buildingName", "amount":"dealAmount", "area":"plottageIndex",
-                  "dong":"umdNm", "floor":"floor",
-                  "year":"dealYear", "month":"dealMonth", "day":"dealDay"},
+        "url":  "https://apis.data.go.kr/1613000/RTMSDataSvcNrgTrade/getRTMSDataSvcNrgTrade",
+        "tags": {"name":"buildingName","amount":"dealAmount", "area":"plottageIndex",
+                 "dong":"umdNm",       "floor":"floor",
+                 "year":"dealYear",    "month":"dealMonth",   "day":"dealDay"},
+        "area_label": "대지면적(㎡)",
     },
 }
 
 # ════════════════════════════════════════════════════
-#  📍 지역 코드
+#  📍 지역 코드 (시/도 → 시/군/구)
 # ════════════════════════════════════════════════════
 REGION_CODES = {
     "서울특별시": {
@@ -127,20 +141,29 @@ REGION_CODES = {
 #  🔧 유틸 함수
 # ════════════════════════════════════════════════════
 def safe_text(item, tag):
+    if not tag or tag == "_none_":
+        return ""
     el = item.find(tag)
     return el.text.strip() if el is not None and el.text else ""
 
 def safe_float(s):
     try:
-        return float(s.replace(",", ""))
+        return float(str(s).replace(",", ""))
     except Exception:
         return 0.0
+
+def get_area_label(prop_type):
+    return PROP_CONFIG[prop_type].get("area_label", "전용면적(㎡)")
 
 @st.cache_data(ttl=86400)
 def fetch_data(api_key, lawd_cd, deal_ymd, prop_type):
     cfg  = PROP_CONFIG[prop_type]
     tags = cfg["tags"]
-    url  = f"{cfg['url']}?serviceKey={api_key}&LAWD_CD={lawd_cd}&DEAL_YMD={deal_ymd}&numOfRows=1000&pageNo=1"
+    url  = (f"{cfg['url']}"
+            f"?serviceKey={api_key}"
+            f"&LAWD_CD={lawd_cd}"
+            f"&DEAL_YMD={deal_ymd}"
+            f"&numOfRows=1000&pageNo=1")
     headers = {
         "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
                        "AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -164,33 +187,42 @@ def fetch_data(api_key, lawd_cd, deal_ymd, prop_type):
             st.code(response.text, language="xml")
             return pd.DataFrame()
 
+        area_label = get_area_label(prop_type)
         rows = []
         for item in root.findall(".//item"):
             try:
-                price  = int(safe_text(item, tags["amount"]).replace(",", ""))
-                area   = safe_float(safe_text(item, tags["area"]))
-                name   = safe_text(item, tags["name"])
-                dong   = safe_text(item, tags["dong"])
-                floor  = safe_text(item, tags["floor"])
-                year   = safe_text(item, tags["year"])
-                month  = safe_text(item, tags["month"]).zfill(2)
-                day    = safe_text(item, tags["day"]).zfill(2)
-                date   = pd.to_datetime(f"{year}-{month}-{day}")
+                price = int(safe_text(item, tags["amount"]).replace(",", ""))
+                area  = safe_float(safe_text(item, tags["area"]))
+                dong  = safe_text(item, tags["dong"])
+                year  = safe_text(item, tags["year"])
+                month = safe_text(item, tags["month"]).zfill(2)
+                day   = safe_text(item, tags["day"]).zfill(2)
+                date  = pd.to_datetime(f"{year}-{month}-{day}")
                 per_py = round(price / (area * 0.3025)) if area > 0 else 0
+
+                # 단독/다가구: 법정동+지번 조합, 층 없음
+                if prop_type == "단독/다가구":
+                    jibun = safe_text(item, "jibun")
+                    name  = f"{dong} {jibun}".strip() if jibun else dong
+                    floor = "-"
+                else:
+                    name  = safe_text(item, tags["name"]) or "(이름없음)"
+                    floor = safe_text(item, tags["floor"]) if tags.get("floor") != "_none_" else "-"
+
                 rows.append({
-                    "거래일자":      date,
-                    "매물명":        name,
-                    "법정동":        dong,
-                    "전용면적(㎡)":  area,
-                    "층":            floor,
-                    "거래금액(만원)": price,
-                    "평당가(만원)":   per_py,
+                    "거래일자":        date,
+                    "매물명":          name,
+                    "법정동":          dong,
+                    area_label:        area,
+                    "층":              floor,
+                    "거래금액(만원)":   price,
+                    "평당가(만원)":     per_py,
                 })
             except Exception:
                 continue
 
-        if not rows:
-            st.warning("⚠️ 데이터가 0건입니다. 아래 원본 응답을 확인하세요.")
+        if not rows and response:
+            st.warning("⚠️ 데이터가 0건입니다.")
             st.code(response.text, language="xml")
 
         return pd.DataFrame(rows)
@@ -203,6 +235,20 @@ def fetch_data(api_key, lawd_cd, deal_ymd, prop_type):
         st.error(f"❌ 요청 오류: {e}")
         if response: st.code(response.text)
         return pd.DataFrame()
+
+
+def fetch_multiple(api_key, codes_dict, deal_ymd, prop_type, label=""):
+    frames = []
+    items  = list(codes_dict.items())
+    prog   = st.progress(0, text=f"{label} 데이터 수집 중...")
+    for i, (name, code) in enumerate(items):
+        prog.progress((i + 1) / len(items), text=f"수집 중: {name} ({i+1}/{len(items)})")
+        df = fetch_data(api_key, code, deal_ymd, prop_type)
+        if not df.empty:
+            frames.append(df)
+    prog.empty()
+    return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
+
 
 def to_excel(df):
     buf = io.BytesIO()
@@ -220,21 +266,34 @@ st.caption("데이터 출처: 국토교통부 실거래가 공개시스템 API")
 with st.sidebar:
     st.header("🔍 조회 설정")
 
-    # 지역 연쇄 선택
+    # ── 지역 연쇄 선택 ("모두" 포함) ────────────────────────────
     st.subheader("📍 지역 선택")
-    sido    = st.selectbox("시/도", list(REGION_CODES.keys()))
-    sigungu_dict = REGION_CODES[sido]
-    sigungu = st.selectbox("시/군/구", list(sigungu_dict.keys()))
-    lawd_cd = sigungu_dict[sigungu]
+    sido_list = ["모두"] + list(REGION_CODES.keys())
+    sido      = st.selectbox("시/도", sido_list)
+
+    if sido == "모두":
+        sigungu_dict = {}
+        for d in REGION_CODES.values():
+            sigungu_dict.update(d)
+    else:
+        sigungu_dict = REGION_CODES[sido]
+
+    sigungu_list = ["모두"] + list(sigungu_dict.keys())
+    sigungu      = st.selectbox("시/군/구", sigungu_list)
+
+    if sido == "모두" and sigungu == "모두":
+        st.warning("⚠️ 전국 조회는 수백 건의 API 호출이 발생하므로 시간이 오래 걸립니다.")
+    elif sigungu == "모두":
+        st.info(f"💡 '{sido}' 전체 구/군을 순차 조회합니다.")
 
     st.divider()
 
-    # 매물 설정
+    # ── 매물 설정 ────────────────────────────────────────────────
     st.subheader("🏠 매물 설정")
     prop_type = st.selectbox("부동산 유형", list(PROP_CONFIG.keys()))
 
-    today = datetime.today()
-    month_options = [(today - relativedelta(months=i)).strftime("%Y%m") for i in range(13)]
+    today          = datetime.today()
+    month_options  = [(today - relativedelta(months=i)).strftime("%Y%m") for i in range(13)]
     selected_month = st.selectbox("조회 연도/월", month_options)
 
     price_range = st.slider(
@@ -243,9 +302,9 @@ with st.sidebar:
         value=(0, 300000), step=1000, format="%d만원"
     )
     area_range = st.slider(
-        "전용면적 범위 (㎡)",
-        min_value=0, max_value=300,
-        value=(0, 300), step=5
+        "면적 범위 (㎡)",
+        min_value=0, max_value=500,
+        value=(0, 500), step=5
     )
 
     st.divider()
@@ -253,29 +312,44 @@ with st.sidebar:
         st.session_state["authenticated"] = False
         st.rerun()
 
-# ── 데이터 조회 ──────────────────────────────────────────────────────
-api_key = API_KEYS[prop_type]
+# ── 데이터 조회 ──────────────────────────────────────────────────
+api_key    = API_KEYS[prop_type]
+area_label = get_area_label(prop_type)
 
-with st.spinner(f"'{sido} {sigungu}' {selected_month} {prop_type} 데이터 불러오는 중..."):
-    df_raw = fetch_data(api_key, lawd_cd, selected_month, prop_type)
+if sido == "모두" and sigungu == "모두":
+    region_label = "전국"
+    all_codes = {}
+    for d in REGION_CODES.values():
+        all_codes.update(d)
+    df_raw = fetch_multiple(api_key, all_codes, selected_month, prop_type, "전국")
+
+elif sigungu == "모두":
+    region_label = f"{sido} 전체"
+    df_raw = fetch_multiple(api_key, sigungu_dict, selected_month, prop_type, f"{sido} 전체")
+
+else:
+    region_label = f"{sido} {sigungu}"
+    lawd_cd = sigungu_dict[sigungu]
+    with st.spinner(f"'{region_label}' {selected_month} {prop_type} 데이터 불러오는 중..."):
+        df_raw = fetch_data(api_key, lawd_cd, selected_month, prop_type)
 
 if df_raw.empty:
-    st.warning("해당 조건의 거래 데이터가 없습니다. 조건을 변경해보세요.")
+    st.warning("해당 조건의 거래 데이터가 없습니다. 다른 조건을 선택해보세요.")
     st.stop()
 
-# ── 필터 적용 ────────────────────────────────────────────────────────
+# ── 필터 적용 ────────────────────────────────────────────────────
 df = df_raw[
     (df_raw["거래금액(만원)"] >= price_range[0]) &
     (df_raw["거래금액(만원)"] <= price_range[1]) &
-    (df_raw["전용면적(㎡)"]  >= area_range[0]) &
-    (df_raw["전용면적(㎡)"]  <= area_range[1])
+    (df_raw[area_label]       >= area_range[0]) &
+    (df_raw[area_label]       <= area_range[1])
 ].copy()
 
 if df.empty:
     st.warning("필터 조건에 맞는 데이터가 없습니다. 슬라이더 범위를 조정해보세요.")
     st.stop()
 
-# ── 요약 지표 ────────────────────────────────────────────────────────
+# ── 요약 지표 ────────────────────────────────────────────────────
 avg_price = int(df["거래금액(만원)"].mean())
 max_price = int(df["거래금액(만원)"].max())
 avg_py    = int(df["평당가(만원)"].mean())
@@ -286,11 +360,11 @@ c2.metric("평균 거래금액", f"{avg_price:,}만원")
 c3.metric("최고 거래금액", f"{max_price:,}만원")
 c4.metric("평균 평당가",   f"{avg_py:,}만원")
 
-# ── 차트 ─────────────────────────────────────────────────────────────
+# ── 차트 ─────────────────────────────────────────────────────────
 st.subheader("📈 일자별 평균 거래금액 추이")
 df_daily = df.groupby("거래일자")["거래금액(만원)"].mean().reset_index()
 fig1 = px.line(df_daily, x="거래일자", y="거래금액(만원)", markers=True,
-               title=f"{sido} {sigungu} {selected_month} {prop_type} 일자별 평균 거래금액")
+               title=f"{region_label} {selected_month} {prop_type} 일자별 평균 거래금액")
 fig1.update_traces(line_color="#2563eb", marker_color="#ef4444")
 policies = [
     {"date": "2024-01-10", "name": "1.10 주택공급 확대방안"},
@@ -321,20 +395,18 @@ with col_b:
     fig3.update_layout(yaxis={"categoryorder": "total ascending"})
     st.plotly_chart(fig3, use_container_width=True)
 
-# ── 상세 거래 내역 + 엑셀 다운로드 ──────────────────────────────────
+# ── 상세 거래 내역 + 엑셀 다운로드 ──────────────────────────────
 st.subheader("📋 상세 거래 내역")
-
 df_display = df.sort_values(by="거래일자", ascending=False).copy()
 df_display["거래일자"]      = df_display["거래일자"].dt.strftime("%Y-%m-%d")
 df_display["거래금액(만원)"] = df_display["거래금액(만원)"].apply(lambda x: f"{x:,}")
 df_display["평당가(만원)"]   = df_display["평당가(만원)"].apply(lambda x: f"{x:,}")
-
 st.dataframe(df_display, use_container_width=True, hide_index=True)
 
 excel_data = to_excel(df.sort_values(by="거래일자", ascending=False))
 st.download_button(
     label="📥 엑셀로 다운로드",
     data=excel_data,
-    file_name=f"실거래가_{sido}_{sigungu}_{selected_month}_{prop_type}.xlsx",
+    file_name=f"실거래가_{region_label}_{selected_month}_{prop_type}.xlsx",
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 )
