@@ -19,159 +19,140 @@ def check_password():
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700;800&display=swap');
 
-    /* ── 기본 초기화 ── */
-    *, *::before, *::after { box-sizing: border-box; }
-    html, body {
-        margin: 0; padding: 0;
-        height: 100%; overflow: hidden;
-        font-family: 'Noto Sans KR', 'Segoe UI', sans-serif;
-    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
 
-    /* ── Streamlit 불필요 요소 숨김 ── */
-    [data-testid="stHeader"],
-    [data-testid="stToolbar"],
-    [data-testid="stDecoration"],
-    footer { display: none !important; }
+    [data-testid="stHeader"], [data-testid="stToolbar"],
+    [data-testid="stDecoration"], footer { display: none !important; }
 
-    /* ── 전체 앱 컨테이너: 배경 + 완전 중앙 정렬 ── */
+    /* 전체 배경 */
     [data-testid="stAppViewContainer"] {
         background:
-            linear-gradient(rgba(0,0,0,0.60), rgba(0,0,0,0.60)),
+            linear-gradient(rgba(0,0,0,0.62), rgba(0,0,0,0.62)),
             url('https://images.unsplash.com/photo-1534430480872-3498386e7856?w=1920&q=90')
             center center / cover no-repeat fixed;
         height: 100vh !important;
         overflow: hidden !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
     }
-
-    /* block-container 여백 완전 제거 */
     section.main { overflow: hidden !important; }
     section.main > div.block-container {
         padding: 0 !important;
-        margin: 0 !important;
         max-width: 100% !important;
         overflow: hidden !important;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 100vh;
     }
 
-    /* ── Streamlit 컬럼 gap 제거 ── */
+    /* ── 컬럼 중앙 배치 ── */
     [data-testid="stHorizontalBlock"] {
         gap: 0 !important;
+        min-height: 100vh;
         align-items: center !important;
         justify-content: center !important;
     }
 
-    /* ── 카드 공통: 위·아래 조각 연결 ── */
-    .card-top {
-        background: #fff;
-        border-radius: 20px 20px 0 0;
-        padding: 36px 48px 16px;
-        text-align: center;
-        width: 100%;
+    /* ── 카드 컬럼 자체를 흰 카드처럼 ── */
+    [data-testid="stHorizontalBlock"] > div:nth-child(2) {
+        background: #ffffff !important;
+        border-radius: 22px !important;
+        box-shadow: 0 28px 70px rgba(0,0,0,0.55), 0 6px 20px rgba(0,0,0,0.30) !important;
+        padding: 44px 44px 36px !important;
+        overflow: visible !important;
     }
-    .card-bot {
-        background: #fff;
-        border-radius: 0 0 20px 20px;
-        padding: 0 48px 28px;
-        width: 100%;
-        box-shadow: 0 24px 60px rgba(0,0,0,0.55);
+    /* 양쪽 빈 컬럼 배경 투명 */
+    [data-testid="stHorizontalBlock"] > div:nth-child(1),
+    [data-testid="stHorizontalBlock"] > div:nth-child(3) {
+        background: transparent !important;
+        box-shadow: none !important;
     }
 
-    /* 로고 */
+    /* ── 카드 내부 텍스트 ── */
     .login-logo {
-        width: 64px; height: 64px;
+        width: 68px; height: 68px;
         background: linear-gradient(135deg, #1a4480, #2f87d4);
-        border-radius: 16px;
-        display: inline-flex; align-items: center; justify-content: center;
-        font-size: 30px;
-        margin: 0 auto 16px;
-        box-shadow: 0 6px 18px rgba(47,135,212,0.46);
+        border-radius: 18px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 32px;
+        margin: 0 auto 20px;
+        box-shadow: 0 6px 20px rgba(47,135,212,0.44);
     }
     .login-title {
-        font-size: 20px; font-weight: 800;
-        color: #0b1c36; line-height: 1.35;
-        margin: 0 0 8px;
+        font-size: 22px; font-weight: 800;
+        color: #0b1c36; line-height: 1.38;
+        text-align: center; margin-bottom: 10px;
+        font-family: 'Noto Sans KR', sans-serif;
     }
     .login-desc {
-        font-size: 13px; color: #8a9ab0;
-        line-height: 1.6; margin: 0 0 20px;
+        font-size: 13.5px; color: #8494a7;
+        line-height: 1.65; text-align: center;
+        margin-bottom: 28px;
+        font-family: 'Noto Sans KR', sans-serif;
     }
     .pw-label {
-        display: block; text-align: left;
-        font-size: 11px; font-weight: 700;
+        display: block;
+        font-size: 11.5px; font-weight: 700;
         color: #3a4a5c; letter-spacing: 1.2px;
-        text-transform: uppercase; margin-bottom: 6px;
+        text-transform: uppercase; margin-bottom: 8px;
+        font-family: 'Noto Sans KR', sans-serif;
     }
 
-    /* 입력창 */
-    div[data-testid="stTextInput"] {
-        margin: 0 !important;
-    }
-    div[data-testid="stTextInput"] > div { margin: 0 !important; }
+    /* ── 입력창 강제 스타일 ── */
+    div[data-testid="stTextInput"],
+    div[data-testid="stTextInput"] > div,
+    div[data-testid="stTextInput"] > label { width: 100% !important; }
     div[data-testid="stTextInput"] input {
-        border: 1.5px solid #dce3ed !important;
-        border-radius: 10px !important;
+        width: 100% !important;
+        border: 1.5px solid #d4dde8 !important;
+        border-radius: 11px !important;
         color: #0b1c36 !important;
         font-size: 15px !important;
-        padding: 12px 16px !important;
-        background: #f5f8fc !important;
-        width: 100% !important;
+        padding: 13px 16px !important;
+        background: #f4f7fb !important;
+        outline: none !important;
+        box-shadow: none !important;
     }
     div[data-testid="stTextInput"] input:focus {
         border-color: #2f87d4 !important;
         background: #fff !important;
         box-shadow: 0 0 0 3px rgba(47,135,212,0.16) !important;
     }
-    div[data-testid="stTextInput"] input::placeholder { color: #b0bcc9 !important; }
-    div[data-testid="stTextInput"] button { background: transparent !important; border: none !important; }
+    div[data-testid="stTextInput"] input::placeholder { color: #b8c4ce !important; }
+    div[data-testid="stTextInput"] button {
+        background: transparent !important; border: none !important;
+        color: #8494a7 !important;
+    }
 
-    /* 접속 버튼 */
-    div[data-testid="stButton"] { margin: 0 !important; }
+    /* ── 버튼 강제 스타일 ── */
+    div[data-testid="stButton"],
+    div[data-testid="stButton"] > button { width: 100% !important; }
     div[data-testid="stButton"] > button {
         background: linear-gradient(135deg, #1a4480, #2f87d4) !important;
         color: #fff !important; border: none !important;
-        border-radius: 10px !important;
+        border-radius: 11px !important;
         font-size: 15px !important; font-weight: 700 !important;
-        padding: 12px !important; letter-spacing: 0.5px !important;
+        padding: 13px 20px !important; letter-spacing: 0.5px !important;
         box-shadow: 0 5px 18px rgba(47,135,212,0.44) !important;
-        margin-top: 8px !important;
-        width: 100% !important;
+        margin-top: 10px !important;
+        transition: all .15s ease !important;
     }
     div[data-testid="stButton"] > button:hover {
-        filter: brightness(1.08) !important;
+        filter: brightness(1.1) !important;
         transform: translateY(-1px) !important;
-        box-shadow: 0 8px 24px rgba(47,135,212,0.56) !important;
+        box-shadow: 0 8px 26px rgba(47,135,212,0.56) !important;
     }
 
     /* 에러 메시지 */
-    div[data-testid="stAlert"] {
-        border-radius: 8px !important;
-        margin-top: 6px !important;
-    }
+    [data-testid="stAlert"] { border-radius: 9px !important; margin-top: 8px !important; }
 
-    /* 카드 중간 배경 (입력창 구간) */
-    .card-mid {
-        background: #fff;
-        padding: 0 48px;
-        width: 100%;
-    }
-
-    /* ── 개발자 (카드 밖 하단 고정) ── */
+    /* ── 개발자 고정 푸터 ── */
     .dev-footer {
-        position: fixed;
-        bottom: 24px; left: 0; right: 0;
+        position: fixed; bottom: 22px; left: 0; right: 0;
         text-align: center;
         font-family: 'Noto Sans KR', 'Segoe UI', sans-serif;
+        pointer-events: none;
     }
     .dev-badge {
         display: inline-block;
-        border: 1px solid rgba(255,255,255,0.40);
-        color: rgba(255,255,255,0.80);
+        border: 1px solid rgba(255,255,255,0.38);
+        color: rgba(255,255,255,0.78);
         font-size: 11px; font-weight: 700;
         letter-spacing: 2px; padding: 3px 14px;
         border-radius: 100px; margin-bottom: 7px;
@@ -180,7 +161,7 @@ def check_password():
         font-size: 18px; font-weight: 800;
         color: #fff; letter-spacing: 0.8px; margin-bottom: 4px;
     }
-    .dev-copy { font-size: 12px; color: rgba(255,255,255,0.50); }
+    .dev-copy { font-size: 12px; color: rgba(255,255,255,0.48); }
     </style>
 
     <!-- 개발자 고정 푸터 -->
@@ -191,35 +172,25 @@ def check_password():
     </div>
     """, unsafe_allow_html=True)
 
-    # ── 단일 컬럼으로 카드 구성 ──────────────────────────
-    _, mid, _ = st.columns([1, 1.4, 1])
-    with mid:
-        # 카드 상단
+    # ── 카드: 좌우 빈 컬럼으로 폭 제한, 가운데 컬럼이 카드 역할 ──
+    _, card, _ = st.columns([1, 1.35, 1])
+    with card:
         st.markdown("""
-        <div class="card-top">
-          <div class="login-logo">🏢</div>
-          <div class="login-title">부동산 매매/전월세<br>실거래가 조회사이트</div>
-          <div class="login-desc">
+        <div class="login-logo">🏢</div>
+        <div class="login-title">부동산 매매/전월세<br>실거래가 조회사이트</div>
+        <div class="login-desc">
             데이터로 읽는 대한민국 부동산<br>
             국토교통부 실거래가 기반 분석 대시보드
-          </div>
-          <span class="pw-label">🔒 &nbsp;ACCESS PASSWORD</span>
         </div>
-        <div class="card-mid">
+        <span class="pw-label">🔒 &nbsp;ACCESS PASSWORD</span>
         """, unsafe_allow_html=True)
 
-        # 위젯
         pw = st.text_input(
             "", type="password", key="pw_input",
             placeholder="비밀번호를 입력하세요",
             label_visibility="collapsed"
         )
         clicked = st.button("대시보드 접속  →", use_container_width=True)
-
-        st.markdown('</div>', unsafe_allow_html=True)
-
-        # 카드 하단 마감
-        st.markdown('<div class="card-bot"></div>', unsafe_allow_html=True)
 
         if clicked:
             if pw == "7601":
