@@ -22,7 +22,7 @@ def check_password():
     html, body { overflow: hidden !important; height: 100vh !important; margin: 0; padding: 0; }
     [data-testid="stHeader"],
     [data-testid="stToolbar"],
-    [data-testid="stDecoration"]  { display: none !important; }
+    [data-testid="stDecoration"] { display: none !important; }
 
     [data-testid="stAppViewContainer"] {
         background:
@@ -30,77 +30,69 @@ def check_password():
             url('https://images.unsplash.com/photo-1534430480872-3498386e7856?w=1920&q=90')
             center/cover no-repeat fixed;
         min-height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
         overflow: hidden !important;
     }
-
-    /* 스크롤바 숨김 */
-    [data-testid="stAppViewContainer"] > section:first-child { overflow: hidden !important; }
     section.main > div.block-container {
         padding: 0 !important;
         max-width: 100% !important;
         overflow: hidden !important;
     }
 
-    /* ── 카드 공통 ── */
-    .card-top, .card-mid, .card-bot {
-        background: #ffffff;
-        width: 100%;
-        font-family: 'Noto Sans KR', 'Segoe UI', sans-serif;
-    }
-    .card-top {
-        border-radius: 22px 22px 0 0;
-        padding: 44px 40px 20px;
-        text-align: center;
-        box-shadow: 0 -2px 0 #fff;
-    }
-    .card-mid {
-        padding: 0 40px;
-    }
-    .card-bot {
-        border-radius: 0 0 22px 22px;
-        padding: 0 40px 32px;
-        box-shadow: 0 24px 60px rgba(0,0,0,0.50), 0 4px 16px rgba(0,0,0,0.28);
-        text-align: center;
-    }
-
-    /* 로고 아이콘 */
-    .login-logo {
-        width: 72px; height: 72px;
-        background: linear-gradient(135deg, #1a4480 0%, #2f87d4 100%);
-        border-radius: 20px;
-        display: inline-flex;
+    /* ── 전체 중앙 정렬 레이아웃 ── */
+    .login-outer {
+        display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
-        font-size: 34px;
-        margin: 0 auto 22px;
-        box-shadow: 0 8px 22px rgba(47,135,212,0.46);
+        min-height: 100vh;
+        gap: 28px;
+        padding: 24px;
+        box-sizing: border-box;
+        font-family: 'Noto Sans KR', 'Segoe UI', sans-serif;
+    }
+
+    /* ── 흰색 카드 ── */
+    .login-card {
+        background: #ffffff;
+        border-radius: 22px;
+        box-shadow: 0 24px 64px rgba(0,0,0,0.52), 0 4px 16px rgba(0,0,0,0.28);
+        padding: 52px 64px 44px;
+        width: 840px;
+        max-width: 94vw;
+        text-align: center;
+    }
+    .login-logo {
+        width: 76px; height: 76px;
+        background: linear-gradient(135deg, #1a4480, #2f87d4);
+        border-radius: 20px;
+        display: inline-flex; align-items: center; justify-content: center;
+        font-size: 36px;
+        margin: 0 auto 24px;
+        box-shadow: 0 8px 24px rgba(47,135,212,0.48);
     }
     .login-title {
-        font-size: 22px; font-weight: 800;
+        font-size: 28px; font-weight: 800;
         color: #0b1c36; line-height: 1.35;
-        margin: 0 0 10px; letter-spacing: -0.4px;
+        margin: 0 0 12px; letter-spacing: -0.5px;
     }
     .login-desc {
-        font-size: 13.5px; color: #7a8a9e;
-        line-height: 1.65; margin: 0 0 26px;
+        font-size: 15px; color: #7a8a9e;
+        line-height: 1.7; margin: 0 0 36px;
     }
     .pw-label {
         display: block; text-align: left;
-        font-size: 11.5px; font-weight: 700;
+        font-size: 13px; font-weight: 700;
         color: #3a4a5c; letter-spacing: 1.2px;
-        text-transform: uppercase; margin-bottom: 8px;
+        text-transform: uppercase; margin-bottom: 10px;
     }
 
     /* 입력창 */
     div[data-testid="stTextInput"] input {
         border: 1.5px solid #dce3ed !important;
-        border-radius: 11px !important;
+        border-radius: 12px !important;
         color: #0b1c36 !important;
-        font-size: 15px !important;
-        padding: 13px 16px !important;
+        font-size: 16px !important;
+        padding: 15px 18px !important;
         background: #f5f8fc !important;
     }
     div[data-testid="stTextInput"] input:focus {
@@ -113,62 +105,59 @@ def check_password():
 
     /* 버튼 */
     div[data-testid="stButton"] > button {
-        background: linear-gradient(135deg, #1a4480 0%, #2f87d4 100%) !important;
+        background: linear-gradient(135deg, #1a4480, #2f87d4) !important;
         color: #fff !important; border: none !important;
-        border-radius: 11px !important;
-        font-size: 15px !important; font-weight: 700 !important;
-        padding: 13px !important; letter-spacing: 0.4px !important;
-        box-shadow: 0 6px 20px rgba(47,135,212,0.44) !important;
+        border-radius: 12px !important;
+        font-size: 16px !important; font-weight: 700 !important;
+        padding: 15px !important; letter-spacing: 0.5px !important;
+        box-shadow: 0 6px 22px rgba(47,135,212,0.46) !important;
         transition: transform .15s, box-shadow .15s !important;
-        margin-top: 6px !important;
+        margin-top: 8px !important;
     }
     div[data-testid="stButton"] > button:hover {
         transform: translateY(-2px) !important;
-        box-shadow: 0 10px 28px rgba(47,135,212,0.56) !important;
+        box-shadow: 0 10px 30px rgba(47,135,212,0.58) !important;
     }
 
-    /* 구분선 */
-    .card-divider {
-        border: none; border-top: 1px solid #edf0f5;
-        margin: 20px 0 18px;
+    /* ── 카드 아래 개발자 정보 (배경 위) ── */
+    .dev-block {
+        text-align: center;
+        font-family: 'Noto Sans KR', 'Segoe UI', sans-serif;
     }
-
-    /* 개발자 — 2배 크기 */
     .dev-badge {
         display: inline-block;
-        background: #eef4fb; color: #2f87d4;
+        border: 1.5px solid rgba(255,255,255,0.45);
+        color: rgba(255,255,255,0.85);
         font-size: 13px; font-weight: 700;
-        letter-spacing: 1.8px; padding: 5px 18px;
-        border-radius: 100px; border: 1px solid #c8ddf2;
-        margin-bottom: 10px;
+        letter-spacing: 2px; padding: 5px 20px;
+        border-radius: 100px; margin-bottom: 10px;
     }
     .dev-name {
-        font-size: 20px; font-weight: 800;
-        color: #0b1c36; letter-spacing: 0.8px;
+        font-size: 22px; font-weight: 800;
+        color: #ffffff; letter-spacing: 1px;
         margin-bottom: 6px;
     }
-    .dev-copy { font-size: 13px; color: #9aaabb; }
+    .dev-copy { font-size: 13px; color: rgba(255,255,255,0.55); }
     </style>
+
+    <div class="login-outer">
+      <div class="login-card" id="login-card-top">
+        <div class="login-logo">🏢</div>
+        <div class="login-title">부동산 매매/전월세<br>실거래가 조회사이트</div>
+        <div class="login-desc">
+          데이터로 읽는 대한민국 부동산<br>
+          국토교통부 실거래가 기반 분석 대시보드
+        </div>
+        <span class="pw-label">🔒&nbsp; ACCESS PASSWORD</span>
+      </div>
+    </div>
     """, unsafe_allow_html=True)
 
-    # ── 카드를 3조각(top / 위젯 / bot)으로 나눠 컬럼 안에 연속 배치 ──
-    _, mid, _ = st.columns([1, 1.7, 1])
+    # 위젯 영역 — 카드와 같은 너비로 맞춤
+    _, mid, _ = st.columns([0.55, 2.9, 0.55])
     with mid:
-        # 카드 상단
-        st.markdown("""
-        <div class="card-top">
-          <div class="login-logo">🏢</div>
-          <div class="login-title">부동산 매매/전월세<br>실거래가 조회사이트</div>
-          <div class="login-desc">
-            데이터로 읽는 대한민국 부동산<br>
-            국토교통부 실거래가 기반 분석 대시보드
-          </div>
-          <span class="pw-label">🔒&nbsp; ACCESS PASSWORD</span>
-        </div>
-        """, unsafe_allow_html=True)
-
-        # 카드 중단 — 배경색만 유지하는 래퍼
-        st.markdown('<div class="card-mid">', unsafe_allow_html=True)
+        # 카드 중단: 입력 + 버튼
+        st.markdown('<div style="background:#fff;padding:0 64px 8px;margin-top:-28px;">', unsafe_allow_html=True)
         pw = st.text_input(
             "", type="password", key="pw_input",
             placeholder="비밀번호를 입력하세요",
@@ -182,10 +171,12 @@ def check_password():
                 st.error("❌ 비밀번호가 틀렸습니다.")
         st.markdown('</div>', unsafe_allow_html=True)
 
-        # 카드 하단 — 개발자 정보
+        # 카드 하단 둥근 마감
+        st.markdown('<div style="background:#fff;height:44px;border-radius:0 0 22px 22px;box-shadow:0 24px 64px rgba(0,0,0,0.52);margin-top:0;"></div>', unsafe_allow_html=True)
+
+        # 카드 밖 개발자 정보
         st.markdown("""
-        <div class="card-bot">
-          <hr class="card-divider">
+        <div class="dev-block" style="margin-top:28px;">
           <div class="dev-badge">DEVELOPER</div>
           <div class="dev-name">KANG, SEONGIL</div>
           <div class="dev-copy">© 2026 부동산 실거래가 대시보드</div>
