@@ -8,6 +8,9 @@ import io
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
+# ── 반드시 가장 먼저 호출 ────────────────────────────────────────
+st.set_page_config(page_title="부동산 실거래가 대시보드", layout="wide", page_icon="🏢")
+
 # ════════════════════════════════════════════════════
 #  🔐 비밀번호 게이트
 # ════════════════════════════════════════════════════
@@ -501,7 +504,6 @@ def to_excel(df):
 # ════════════════════════════════════════════════════
 #  🖥️ 메인 UI
 # ════════════════════════════════════════════════════
-st.set_page_config(page_title="부동산 실거래가 대시보드", layout="wide", page_icon="🏢")
 st.title("🏢 부동산 실거래가 분석 대시보드")
 st.caption("데이터 출처: 국토교통부 실거래가 공개시스템 API")
 
