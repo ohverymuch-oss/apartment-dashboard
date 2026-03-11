@@ -15,215 +15,181 @@ def check_password():
     if st.session_state.get("authenticated"):
         return True
 
+    # ── 전체 배경 + Glassmorphism 카드 CSS ──────────────────────────
     st.markdown("""
     <style>
-    /* 전체 페이지 기본 배경 */
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700;900&display=swap');
+
+    /* 기본 여백 제거 */
+    #root > div:first-child { padding: 0; }
+    [data-testid="stAppViewContainer"] > div:first-child { padding: 0; }
+    [data-testid="stHeader"]  { display: none; }
+    [data-testid="stToolbar"] { display: none; }
+    .block-container { padding: 0 !important; max-width: 100% !important; }
+
+    /* 전체 화면 배경 */
     [data-testid="stAppViewContainer"] {
-        background: #0a0e1a;
-    }
-    [data-testid="stHeader"] { background: transparent !important; }
-
-    .login-wrapper {
-        display: flex;
-        min-height: 100vh;
-        width: 100%;
-        font-family: 'Segoe UI', 'Noto Sans KR', sans-serif;
-    }
-
-    /* ── 왼쪽 이미지 패널 ── */
-    .login-left {
-        flex: 1;
-        position: relative;
         background:
-            linear-gradient(160deg, rgba(10,14,26,0.55) 0%, rgba(10,14,26,0.15) 100%),
-            url('https://images.unsplash.com/photo-1549693578-d683be217e58?w=1200&q=80') center/cover no-repeat;
-        display: flex;
-        flex-direction: column;
-        justify-content: flex-end;
-        padding: 48px;
+            linear-gradient(rgba(5, 10, 25, 0.62), rgba(5, 10, 25, 0.62)),
+            url('https://images.unsplash.com/photo-1517598798260-d55fb51f8bea?w=1800&q=85')
+            center/cover no-repeat fixed;
+        font-family: 'Noto Sans KR', 'Segoe UI', sans-serif;
         min-height: 100vh;
-    }
-    .login-left-badge {
-        display: inline-block;
-        background: rgba(99,179,237,0.18);
-        border: 1px solid rgba(99,179,237,0.45);
-        color: #90cdf4;
-        font-size: 12px;
-        letter-spacing: 2.5px;
-        text-transform: uppercase;
-        padding: 6px 16px;
-        border-radius: 100px;
-        margin-bottom: 20px;
-        width: fit-content;
-    }
-    .login-left h1 {
-        color: #ffffff;
-        font-size: clamp(26px, 3vw, 38px);
-        font-weight: 700;
-        line-height: 1.35;
-        margin: 0 0 16px 0;
-    }
-    .login-left p {
-        color: rgba(255,255,255,0.72);
-        font-size: 15px;
-        line-height: 1.7;
-        margin: 0 0 40px 0;
-        max-width: 380px;
-    }
-    .stat-row {
-        display: flex;
-        gap: 32px;
-    }
-    .stat-item { color: #fff; }
-    .stat-item .num {
-        font-size: 26px;
-        font-weight: 700;
-        color: #63b3ed;
-        display: block;
-    }
-    .stat-item .label {
-        font-size: 12px;
-        color: rgba(255,255,255,0.55);
-        letter-spacing: 0.5px;
     }
 
-    /* ── 오른쪽 로그인 패널 ── */
-    .login-right {
-        width: 480px;
-        min-width: 360px;
-        background: #ffffff;
+    /* 중앙 정렬 래퍼 */
+    .glass-wrapper {
         display: flex;
         flex-direction: column;
-        justify-content: center;
-        padding: 64px 56px;
-        min-height: 100vh;
-    }
-    .login-right .brand {
-        display: flex;
         align-items: center;
-        gap: 10px;
-        margin-bottom: 48px;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 24px;
     }
-    .login-right .brand-icon {
-        width: 40px; height: 40px;
-        background: linear-gradient(135deg, #2b6cb0, #63b3ed);
-        border-radius: 10px;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 20px;
-    }
-    .login-right .brand-text {
-        font-size: 15px;
-        font-weight: 700;
-        color: #1a202c;
-        letter-spacing: -0.3px;
-    }
-    .login-right h2 {
-        font-size: 28px;
-        font-weight: 700;
-        color: #1a202c;
-        margin: 0 0 8px 0;
-        letter-spacing: -0.5px;
-    }
-    .login-right .slogan {
-        font-size: 14px;
-        color: #718096;
-        margin: 0 0 40px 0;
-    }
-    .login-right .input-label {
-        font-size: 13px;
-        font-weight: 600;
-        color: #2d3748;
-        margin-bottom: 8px;
-        display: block;
-    }
-    .login-right .developer-credit {
-        margin-top: 48px;
-        padding-top: 24px;
-        border-top: 1px solid #e2e8f0;
-        font-size: 12px;
-        color: #a0aec0;
+
+    /* Glassmorphism 카드 */
+    .glass-card {
+        background: rgba(255, 255, 255, 0.13);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        border: 1px solid rgba(255, 255, 255, 0.28);
+        border-radius: 24px;
+        box-shadow:
+            0 8px 32px rgba(0, 0, 0, 0.45),
+            inset 0 1px 0 rgba(255,255,255,0.25);
+        padding: 52px 48px 40px;
+        width: 100%;
+        max-width: 420px;
         text-align: center;
     }
-    .login-right .developer-credit span {
-        color: #4a5568;
-        font-weight: 600;
+
+    /* 아이콘 뱃지 */
+    .glass-icon {
+        width: 72px; height: 72px;
+        background: linear-gradient(135deg, #1e3a6e 0%, #3182ce 100%);
+        border-radius: 20px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 34px;
+        margin-bottom: 20px;
+        box-shadow: 0 6px 20px rgba(49,130,206,0.5);
     }
 
-    /* Streamlit 위젯 커스터마이징 */
+    .glass-card h1 {
+        color: #ffffff;
+        font-size: 22px;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+        margin: 0 0 6px 0;
+        line-height: 1.3;
+    }
+    .glass-card .slogan {
+        color: rgba(255,255,255,0.62);
+        font-size: 13px;
+        margin: 0 0 32px 0;
+        line-height: 1.6;
+    }
+    .glass-card .pw-label {
+        display: block;
+        text-align: left;
+        color: rgba(255,255,255,0.80);
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+    }
+
+    /* 입력창 */
     div[data-testid="stTextInput"] input {
-        border: 1.5px solid #e2e8f0 !important;
-        border-radius: 10px !important;
+        background: rgba(255,255,255,0.12) !important;
+        border: 1.5px solid rgba(255,255,255,0.3) !important;
+        border-radius: 12px !important;
+        color: #ffffff !important;
+        font-size: 15px !important;
         padding: 14px 16px !important;
-        font-size: 15px !important;
-        background: #f7fafc !important;
-        transition: border-color 0.2s;
+        caret-color: #90cdf4;
     }
+    div[data-testid="stTextInput"] input::placeholder { color: rgba(255,255,255,0.38) !important; }
     div[data-testid="stTextInput"] input:focus {
-        border-color: #4299e1 !important;
-        background: #fff !important;
-        box-shadow: 0 0 0 3px rgba(66,153,225,0.15) !important;
+        border-color: #63b3ed !important;
+        background: rgba(255,255,255,0.18) !important;
+        box-shadow: 0 0 0 3px rgba(99,179,237,0.25) !important;
     }
+    /* 비밀번호 눈 아이콘 */
+    div[data-testid="stTextInput"] button { color: rgba(255,255,255,0.6) !important; }
+
+    /* 접속 버튼 */
     div[data-testid="stButton"] > button {
-        background: linear-gradient(135deg, #2b6cb0 0%, #4299e1 100%) !important;
-        color: white !important;
+        background: linear-gradient(135deg, #1e3a6e 0%, #3182ce 100%) !important;
+        color: #ffffff !important;
         border: none !important;
-        border-radius: 10px !important;
-        padding: 14px !important;
+        border-radius: 12px !important;
         font-size: 15px !important;
-        font-weight: 600 !important;
-        letter-spacing: 0.3px !important;
-        transition: opacity 0.2s, transform 0.1s !important;
-        box-shadow: 0 4px 15px rgba(66,153,225,0.4) !important;
+        font-weight: 700 !important;
+        padding: 14px !important;
+        letter-spacing: 0.4px !important;
+        box-shadow: 0 6px 20px rgba(49,130,206,0.5) !important;
+        transition: transform 0.15s, box-shadow 0.15s !important;
+        margin-top: 4px;
     }
     div[data-testid="stButton"] > button:hover {
-        opacity: 0.92 !important;
-        transform: translateY(-1px) !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 10px 28px rgba(49,130,206,0.6) !important;
+    }
+
+    /* 개발자 크레딧 */
+    .dev-credit {
+        margin-top: 28px;
+        color: rgba(255,255,255,0.38);
+        font-size: 12px;
+        line-height: 1.8;
+        text-align: center;
+    }
+    .dev-credit .dev-name {
+        color: rgba(255,255,255,0.75);
+        font-weight: 700;
+        font-size: 13px;
+        letter-spacing: 0.3px;
+    }
+    .dev-credit .dev-tag {
+        display: inline-block;
+        background: rgba(99,179,237,0.22);
+        border: 1px solid rgba(99,179,237,0.4);
+        color: #90cdf4;
+        font-size: 10px;
+        letter-spacing: 1.2px;
+        padding: 2px 10px;
+        border-radius: 100px;
+        margin-bottom: 6px;
     }
     </style>
     """, unsafe_allow_html=True)
 
-    # ── 레이아웃: 왼쪽 이미지 | 오른쪽 로그인 폼 ──
-    left_col, right_col = st.columns([1.1, 0.9])
-
-    with left_col:
-        st.markdown("""
-        <div class="login-left">
-            <div class="login-left-badge">🏙️ Real Estate Intelligence</div>
-            <h1>데이터로 읽는<br>대한민국 부동산</h1>
-            <p>국토교통부 실거래가 데이터를 기반으로<br>
-            매매·전월세 트렌드를 한눈에 분석하세요.<br>
-            지역별·유형별 상세 통계를 제공합니다.</p>
-            <div class="stat-row">
-                <div class="stat-item">
-                    <span class="num">17+</span>
-                    <span class="label">광역 지자체</span>
-                </div>
-                <div class="stat-item">
-                    <span class="num">5종</span>
-                    <span class="label">부동산 유형</span>
-                </div>
-                <div class="stat-item">
-                    <span class="num">실시간</span>
-                    <span class="label">API 데이터</span>
-                </div>
-            </div>
+    # ── 카드 상단 HTML ──────────────────────────────────────────────
+    st.markdown("""
+    <div class="glass-wrapper">
+        <div class="glass-card">
+            <div class="glass-icon">🏢</div>
+            <h1>부동산 매매/전월세<br>실거래가 조회사이트</h1>
+            <p class="slogan">
+                데이터로 읽는 대한민국 부동산<br>
+                국토교통부 실거래가 기반 분석 대시보드
+            </p>
+            <span class="pw-label">🔒 &nbsp;ACCESS PASSWORD</span>
         </div>
-        """, unsafe_allow_html=True)
+    </div>
+    """, unsafe_allow_html=True)
 
-    with right_col:
-        st.markdown("""
-        <div class="login-right">
-            <div class="brand">
-                <div class="brand-icon">🏢</div>
-                <span class="brand-text">부동산 매매/전월세 실거래가 조회사이트</span>
-            </div>
-            <h2>안녕하세요 👋</h2>
-            <p class="slogan">서울 부동산 데이터 분석 대시보드에 오신 것을 환영합니다.<br>접속하려면 비밀번호를 입력해 주세요.</p>
-            <span class="input-label">🔒 비밀번호</span>
-        </div>
-        """, unsafe_allow_html=True)
-
-        pw = st.text_input("", type="password", key="pw_input", placeholder="비밀번호를 입력하세요", label_visibility="collapsed")
+    # ── Streamlit 위젯 (CSS 카드 위에 오버레이) ─────────────────────
+    _, mid, _ = st.columns([1, 1.6, 1])
+    with mid:
+        pw = st.text_input(
+            "", type="password", key="pw_input",
+            placeholder="비밀번호를 입력하세요",
+            label_visibility="collapsed"
+        )
         if st.button("대시보드 접속 →", use_container_width=True):
             if pw == "7601":
                 st.session_state["authenticated"] = True
@@ -232,10 +198,10 @@ def check_password():
                 st.error("❌ 비밀번호가 틀렸습니다.")
 
         st.markdown("""
-        <div style="margin-top:48px; padding-top:24px; border-top:1px solid #e2e8f0;
-                    font-size:12px; color:#a0aec0; text-align:center;">
-            Developed by <span style="color:#4a5568; font-weight:600;">KANG, SEONGIL</span><br>
-            <span style="font-size:11px;">© 2026 부동산 실거래가 대시보드</span>
+        <div class="dev-credit">
+            <div class="dev-tag">DEVELOPER</div><br>
+            <span class="dev-name">KANG, SEONGIL</span><br>
+            © 2026 부동산 실거래가 대시보드
         </div>
         """, unsafe_allow_html=True)
 
