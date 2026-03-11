@@ -327,7 +327,7 @@ with st.sidebar:
     # ── 지역 연쇄 선택 ───────────────────────────────
     st.subheader("📍 지역 선택")
     sido_list = ["모두"] + list(REGION_CODES.keys())
-    sido      = st.selectbox("시/도", sido_list)
+    sido      = st.selectbox("시/도", sido_list, index=sido_list.index("서울특별시"))
 
     if sido == "모두":
         sigungu_dict = {}
@@ -337,7 +337,8 @@ with st.sidebar:
         sigungu_dict = REGION_CODES[sido]
 
     sigungu_list = ["모두"] + list(sigungu_dict.keys())
-    sigungu      = st.selectbox("시/군/구", sigungu_list)
+    default_sigungu = sigungu_list.index("동대문구") if "동대문구" in sigungu_list else 0
+    sigungu      = st.selectbox("시/군/구", sigungu_list, index=default_sigungu)
 
     if sido == "모두" and sigungu == "모두":
         st.warning("⚠️ 전국 조회는 수백 건의 API 호출이 발생합니다.")
