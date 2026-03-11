@@ -20,7 +20,15 @@ def check_password():
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700;800&display=swap');
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; overflow: hidden; }
+
+    /* 스크롤 완전 차단 */
+    html { overflow: hidden !important; height: 100% !important; }
+    body { overflow: hidden !important; height: 100% !important; }
+    #root { overflow: hidden !important; height: 100% !important; }
+    .main { overflow: hidden !important; }
+    [data-testid="stAppViewContainer"] { overflow: hidden !important; }
+    [data-testid="stAppViewContainer"] > section { overflow: hidden !important; }
+    section.main > div.block-container { overflow: hidden !important; }
 
     [data-testid="stHeader"], [data-testid="stToolbar"],
     [data-testid="stDecoration"], footer { display: none !important; }
@@ -32,21 +40,23 @@ def check_password():
             url('https://images.unsplash.com/photo-1534430480872-3498386e7856?w=1920&q=90')
             center center / cover no-repeat fixed;
         height: 100vh !important;
-        overflow: hidden !important;
+        max-height: 100vh !important;
     }
-    section.main { overflow: hidden !important; }
     section.main > div.block-container {
         padding: 0 !important;
         max-width: 100% !important;
-        overflow: hidden !important;
+        height: 100vh !important;
+        max-height: 100vh !important;
     }
 
-    /* 컬럼 행: 세로 중앙 정렬 */
+    /* 컬럼 행: 세로 가운데 정렬 */
     [data-testid="stHorizontalBlock"] {
         gap: 0 !important;
-        min-height: 100vh;
+        height: 100vh !important;
+        max-height: 100vh !important;
         align-items: center !important;
         justify-content: center !important;
+        overflow: hidden !important;
     }
 
     /* 가운데 컬럼 = 흰 카드 */
@@ -54,9 +64,8 @@ def check_password():
         background: #ffffff !important;
         border-radius: 24px !important;
         box-shadow: 0 32px 80px rgba(0,0,0,0.55), 0 8px 24px rgba(0,0,0,0.28) !important;
-        padding: 52px 52px 44px !important;
+        padding: 52px 64px 44px !important;
         overflow: visible !important;
-        /* max-width는 컬럼 비율로 제어 */
     }
     /* 양쪽 빈 컬럼 투명 */
     [data-testid="stHorizontalBlock"] > div:nth-child(1),
@@ -64,9 +73,10 @@ def check_password():
         background: transparent !important;
         box-shadow: none !important;
         padding: 0 !important;
+        overflow: hidden !important;
     }
 
-    /* 로고 */
+    /* 카드 내부 요소 */
     .login-logo {
         width: 80px; height: 80px;
         background: linear-gradient(135deg, #1a4480, #2f87d4);
@@ -86,7 +96,7 @@ def check_password():
     .login-desc {
         font-size: 15px; color: #8494a7;
         line-height: 1.7; text-align: center;
-        margin-bottom: 32px;
+        margin-bottom: 28px;
         font-family: 'Noto Sans KR', sans-serif;
     }
     .pw-label {
@@ -97,10 +107,9 @@ def check_password():
         font-family: 'Noto Sans KR', sans-serif;
     }
 
-    /* 입력창 — 높이 50px */
+    /* 입력창 */
     div[data-testid="stTextInput"],
-    div[data-testid="stTextInput"] > div,
-    div[data-testid="stTextInput"] > label { width: 100% !important; }
+    div[data-testid="stTextInput"] > div { width: 100% !important; }
     div[data-testid="stTextInput"] input {
         width: 100% !important;
         height: 50px !important;
@@ -110,9 +119,7 @@ def check_password():
         font-size: 16px !important;
         padding: 0 18px !important;
         background: #f4f7fb !important;
-        outline: none !important;
-        box-shadow: none !important;
-        font-family: 'Noto Sans KR', sans-serif;
+        outline: none !important; box-shadow: none !important;
     }
     div[data-testid="stTextInput"] input:focus {
         border-color: #2f87d4 !important;
@@ -122,24 +129,21 @@ def check_password():
     div[data-testid="stTextInput"] input::placeholder { color: #b8c4ce !important; }
     div[data-testid="stTextInput"] button {
         background: transparent !important; border: none !important;
-        color: #8494a7 !important; height: 50px !important;
+        color: #8494a7 !important;
     }
 
-    /* 버튼 — 높이 50px, 큰 폰트 */
-    div[data-testid="stButton"],
-    div[data-testid="stButton"] > button { width: 100% !important; }
+    /* 버튼 */
     div[data-testid="stButton"] > button {
+        width: 100% !important;
         background: linear-gradient(135deg, #1a4480, #2f87d4) !important;
         color: #fff !important; border: none !important;
         border-radius: 12px !important;
         font-size: 17px !important; font-weight: 800 !important;
-        height: 50px !important;
-        padding: 0 20px !important;
+        height: 50px !important; padding: 0 20px !important;
         letter-spacing: 0.6px !important;
         box-shadow: 0 6px 22px rgba(47,135,212,0.46) !important;
         margin-top: 12px !important;
         transition: all .15s ease !important;
-        font-family: 'Noto Sans KR', sans-serif;
     }
     div[data-testid="stButton"] > button:hover {
         filter: brightness(1.1) !important;
@@ -147,15 +151,14 @@ def check_password():
         box-shadow: 0 10px 28px rgba(47,135,212,0.58) !important;
     }
 
-    /* 에러 메시지 */
     [data-testid="stAlert"] { border-radius: 10px !important; margin-top: 10px !important; }
 
     /* 개발자 고정 푸터 */
     .dev-footer {
         position: fixed; bottom: 24px; left: 0; right: 0;
-        text-align: center;
+        text-align: center; pointer-events: none;
         font-family: 'Noto Sans KR', 'Segoe UI', sans-serif;
-        pointer-events: none;
+        z-index: 9999;
     }
     .dev-badge {
         display: inline-block;
@@ -165,10 +168,7 @@ def check_password():
         letter-spacing: 2px; padding: 3px 16px;
         border-radius: 100px; margin-bottom: 8px;
     }
-    .dev-name {
-        font-size: 18px; font-weight: 800;
-        color: #ffffff; letter-spacing: 0.8px; margin-bottom: 5px;
-    }
+    .dev-name { font-size: 18px; font-weight: 800; color: #fff; letter-spacing: 0.8px; margin-bottom: 5px; }
     .dev-copy { font-size: 12px; color: rgba(255,255,255,0.48); }
     </style>
 
@@ -179,8 +179,8 @@ def check_password():
     </div>
     """, unsafe_allow_html=True)
 
-    # 비율: [1, 1.55, 1] → 가운데 컬럼이 약 480px 폭
-    _, card, _ = st.columns([1, 1.55, 1])
+    # 컬럼 비율 조정: 가운데를 크게 잡아 카드 폭을 900px 수준으로 확대
+    _, card, _ = st.columns([0.3, 3.4, 0.3])
     with card:
         st.markdown("""
         <div class="login-logo">🏢</div>
