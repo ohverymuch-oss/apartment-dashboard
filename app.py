@@ -180,7 +180,7 @@ def check_password():
     """, unsafe_allow_html=True)
 
     # 컬럼 비율 조정: 가운데를 크게 잡아 카드 폭을 900px 수준으로 확대
-    _, card, _ = st.columns([0.3, 3.4, 0.3])
+    _, card, _ = st.columns([1.17, 1, 1.17])
     with card:
         st.markdown("""
         <div class="login-logo">🏢</div>
