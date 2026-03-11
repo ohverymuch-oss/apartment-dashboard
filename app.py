@@ -350,21 +350,19 @@ with st.sidebar:
     # ── 매물 설정 ────────────────────────────────────
     st.subheader("🏠 매물 설정")
 
-    # 거래유형 체크박스 (복수 선택 가능)
-    st.write("거래유형")
-    col_cb1, col_cb2 = st.columns(2)
-    with col_cb1:
-        cb_sale = st.checkbox("매매",   value=True)
-    with col_cb2:
-        cb_rent = st.checkbox("전월세", value=False)
-
-    if not cb_sale and not cb_rent:
+    # 거래유형 멀티셀렉트 (1개 이상 선택 강제)
+    selected_trades = st.multiselect(
+        "거래유형",
+        options=["매매", "전월세"],
+        default=["매매"],
+        key="trade_type_select",
+    )
+    if not selected_trades:
         st.warning("거래유형을 하나 이상 선택하세요.")
-        cb_sale = True
+        selected_trades = ["매매"]
 
-    selected_trades = []
-    if cb_sale: selected_trades.append("매매")
-    if cb_rent: selected_trades.append("전월세")
+    cb_sale = "매매"   in selected_trades
+    cb_rent = "전월세" in selected_trades
 
     # 부동산 유형: 선택된 거래유형 모두에 존재하는 유형만 표시
     if len(selected_trades) == 1:
