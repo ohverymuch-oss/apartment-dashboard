@@ -7,6 +7,7 @@ import plotly.graph_objects as go
 import io
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # ── 반드시 가장 먼저 호출 ────────────────────────────────────────
 st.set_page_config(page_title="부동산 실거래가 대시보드", layout="wide", page_icon="🏢")
@@ -594,20 +595,67 @@ with st.sidebar:
         st.session_state["authenticated"] = False
         st.rerun()
 
-# ── 데이터 조회 (선택된 거래유형별) ────────────────────────────────
-def load_df(trade_type):
-    """지역/기간에 맞는 raw DataFrame 반환 (캐시 활용)"""
+# ── 데이터 조회 (선택된 거래유형별, 3개년 병렬) ─────────────────────
+
+def get_yoy_months(base_ym):
+    dt = datetime.strptime(base_ym, "%Y%m")
+    return [
+        base_ym,
+        (dt - relativedelta(years=1)).strftime("%Y%m"),
+        (dt - relativedelta(years=2)).strftime("%Y%m"),
+    ]
+
+def _fetch_single(lawd_cd, ym, trade_type, prop_type):
+    try:
+        return fetch_data(lawd_cd, ym, trade_type, prop_type)
+    except Exception:
+        return pd.DataFrame()
+
+def load_3years(trade_type):
+    months = get_yoy_months(selected_month)
     if sido == "모두" and sigungu == "모두":
         all_codes = {}
         for d in REGION_CODES.values():
             all_codes.update(d)
-        return fetch_multiple(all_codes, selected_month, trade_type, prop_type, f"전국({trade_type})")
+        code_items = list(all_codes.items())
     elif sigungu == "모두":
-        return fetch_multiple(sigungu_dict, selected_month, trade_type, prop_type, f"{sido} 전체({trade_type})")
+        code_items = list(sigungu_dict.items())
     else:
-        lawd_cd = sigungu_dict[sigungu]
-        with st.spinner(f"'{region_label}' {selected_month} {prop_type} ({trade_type}) 불러오는 중..."):
-            return fetch_data(lawd_cd, selected_month, trade_type, prop_type)
+        code_items = [(sigungu, sigungu_dict[sigungu])]
+
+    results = {m: [] for m in months}
+
+    if len(code_items) == 1:
+        _, lawd_cd = code_items[0]
+        with st.spinner("3개년 데이터 병렬 수집 중..."):
+            with ThreadPoolExecutor(max_workers=3) as ex:
+                futures = {ex.submit(_fetch_single, lawd_cd, m, trade_type, prop_type): m
+                           for m in months}
+                for fut in as_completed(futures):
+                    m = futures[fut]
+                    df = fut.result()
+                    if not df.empty:
+                        results[m].append(df)
+    else:
+        prog = st.progress(0, text="3개년 데이터 수집 중...")
+        total = len(code_items) * len(months)
+        done  = 0
+        for region_name, lawd_cd in code_items:
+            with ThreadPoolExecutor(max_workers=3) as ex:
+                futures = {ex.submit(_fetch_single, lawd_cd, m, trade_type, prop_type): m
+                           for m in months}
+                for fut in as_completed(futures):
+                    m = futures[fut]
+                    done += 1
+                    prog.progress(min(done / total, 1.0), text=f"수집 중: {region_name}")
+                    df = fut.result()
+                    if not df.empty:
+                        results[m].append(df)
+        prog.empty()
+
+    return {m: (pd.concat(frames, ignore_index=True) if frames else pd.DataFrame())
+            for m, frames in results.items()}
+
 
 if sido == "모두" and sigungu == "모두":
     region_label = "전국"
@@ -616,171 +664,294 @@ elif sigungu == "모두":
 else:
     region_label = f"{sido} {sigungu}"
 
-# ── 매매 섹션 ────────────────────────────────────────────────────
+months_3 = get_yoy_months(selected_month)
+YEAR_COLORS = {
+    months_3[0]: "#2563eb",
+    months_3[1]: "#f59e0b",
+    months_3[2]: "#6b7280",
+}
+YEAR_LABELS = {
+    months_3[0]: f"{months_3[0][:4]}년 (기준)",
+    months_3[1]: f"{months_3[1][:4]}년 (1년전)",
+    months_3[2]: f"{months_3[2][:4]}년 (2년전)",
+}
+
+def _delta_str(cur, prev, unit="만원", pct=True):
+    if prev is None or prev == 0:
+        return None
+    diff = cur - prev
+    sign = "+" if diff > 0 else ""
+    pct_s = f" ({diff/prev*100:+.1f}%)" if pct else ""
+    return f"{sign}{diff:,}{unit}{pct_s}"
+
+# ════════════════════════════════════════════════════
+#  매매 섹션
+# ════════════════════════════════════════════════════
 if "매매" in selected_trades:
     area_label_sale = get_area_label("매매", prop_type)
-    df_raw_sale = load_df("매매")
+    raw3_sale = load_3years("매매")
 
-    if df_raw_sale.empty:
-        st.warning("매매: 해당 조건의 거래 데이터가 없습니다.")
-    else:
-        df_sale = df_raw_sale[
-            (df_raw_sale["거래금액(만원)"]    >= price_range[0]) &
-            (df_raw_sale["거래금액(만원)"]    <= price_range[1]) &
-            (df_raw_sale[area_label_sale]     >= area_range[0])  &
-            (df_raw_sale[area_label_sale]     <= area_range[1])
+    def filter_sale(df):
+        if df.empty: return df
+        return df[
+            (df["거래금액(만원)"] >= price_range[0]) &
+            (df["거래금액(만원)"] <= price_range[1]) &
+            (df[area_label_sale]  >= area_range[0])  &
+            (df[area_label_sale]  <= area_range[1])
         ].copy()
 
-        if df_sale.empty:
-            st.warning("매매: 필터 조건에 맞는 데이터가 없습니다.")
-        else:
-            st.markdown("---")
-            st.header("🏷️ 매매 거래 현황")
+    filtered3_sale = {m: filter_sale(raw3_sale[m]) for m in months_3}
+    df_sale   = filtered3_sale[months_3[0]]
+    df_sale_1 = filtered3_sale[months_3[1]]
 
-            avg_price = int(df_sale["거래금액(만원)"].mean())
-            max_price = int(df_sale["거래금액(만원)"].max())
-            avg_py    = int(df_sale["평당가(만원)"].mean())
+    if df_sale.empty:
+        st.warning("매매(기준월): 해당 조건의 거래 데이터가 없습니다.")
+    else:
+        st.markdown("---")
+        st.header("🏷️ 매매 거래 현황")
 
-            c1, c2, c3, c4 = st.columns(4)
-            c1.metric("총 거래건수",   f"{len(df_sale):,}건")
-            c2.metric("평균 거래금액", f"{avg_price:,}만원")
-            c3.metric("최고 거래금액", f"{max_price:,}만원")
-            c4.metric("평균 평당가",   f"{avg_py:,}만원")
+        avg_cur = int(df_sale["거래금액(만원)"].mean())
+        max_cur = int(df_sale["거래금액(만원)"].max())
+        py_cur  = int(df_sale["평당가(만원)"].mean())
+        cnt_cur = len(df_sale)
+        avg_1y  = int(df_sale_1["거래금액(만원)"].mean()) if not df_sale_1.empty else None
+        py_1y   = int(df_sale_1["평당가(만원)"].mean())  if not df_sale_1.empty else None
+        cnt_1y  = len(df_sale_1) if not df_sale_1.empty else None
 
-            st.subheader("📈 일자별 평균 거래금액 추이")
-            df_daily = df_sale.groupby("거래일자")["거래금액(만원)"].mean().reset_index()
-            fig1 = px.line(df_daily, x="거래일자", y="거래금액(만원)", markers=True,
-                           title=f"{region_label} {selected_month} {prop_type} 일자별 평균 거래금액")
-            fig1.update_traces(line_color="#2563eb", marker_color="#ef4444")
-            policies = [
-                {"date": "2024-01-10", "name": "1.10 주택공급 확대방안"},
-                {"date": "2024-08-08", "name": "8.8 공급 확대방안"},
-                {"date": "2025-01-15", "name": "특례보금자리론 개편"},
-            ]
-            for p in policies:
-                pd_ = pd.to_datetime(p["date"])
-                if not df_daily.empty and df_daily["거래일자"].min() <= pd_ <= df_daily["거래일자"].max():
-                    fig1.add_vline(x=pd_, line_dash="dash", line_color="red",
-                                   annotation_text=p["name"], annotation_position="top right")
-            st.plotly_chart(fig1, use_container_width=True)
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("총 거래건수",   f"{cnt_cur:,}건",   delta=_delta_str(cnt_cur, cnt_1y, "건"))
+        c2.metric("평균 거래금액", f"{avg_cur:,}만원",  delta=_delta_str(avg_cur, avg_1y))
+        c3.metric("최고 거래금액", f"{max_cur:,}만원")
+        c4.metric("평균 평당가",   f"{py_cur:,}만원",   delta=_delta_str(py_cur, py_1y))
 
-            col_a, col_b = st.columns(2)
-            with col_a:
-                st.subheader("🏘️ 법정동별 거래 건수")
-                dong_cnt = df_sale["법정동"].value_counts().reset_index()
-                dong_cnt.columns = ["법정동", "거래건수"]
-                fig2 = px.bar(dong_cnt, x="법정동", y="거래건수", color="거래건수",
-                              color_continuous_scale="Blues")
-                st.plotly_chart(fig2, use_container_width=True)
-            with col_b:
-                st.subheader("💰 매물별 평균 거래금액 TOP 10")
-                apt_avg = df_sale.groupby("매물명")["거래금액(만원)"].mean().nlargest(10).reset_index()
-                fig3 = px.bar(apt_avg, x="거래금액(만원)", y="매물명", orientation="h",
-                              color="거래금액(만원)", color_continuous_scale="Reds")
-                fig3.update_layout(yaxis={"categoryorder": "total ascending"})
-                st.plotly_chart(fig3, use_container_width=True)
+        st.subheader("📈 일자별 평균 거래금액 추이")
+        df_daily = df_sale.groupby("거래일자")["거래금액(만원)"].mean().reset_index()
+        fig1 = px.line(df_daily, x="거래일자", y="거래금액(만원)", markers=True,
+                       title=f"{region_label} {selected_month} {prop_type} 일자별 평균 거래금액")
+        fig1.update_traces(line_color="#2563eb", marker_color="#ef4444")
+        policies = [
+            {"date": "2024-01-10", "name": "1.10 주택공급 확대방안"},
+            {"date": "2024-08-08", "name": "8.8 공급 확대방안"},
+            {"date": "2025-01-15", "name": "특례보금자리론 개편"},
+        ]
+        for p in policies:
+            pd_ = pd.to_datetime(p["date"])
+            if not df_daily.empty and df_daily["거래일자"].min() <= pd_ <= df_daily["거래일자"].max():
+                fig1.add_vline(x=pd_, line_dash="dash", line_color="red",
+                               annotation_text=p["name"], annotation_position="top right")
+        st.plotly_chart(fig1, use_container_width=True)
 
-            st.subheader("📋 상세 거래 내역")
-            df_disp = df_sale.sort_values("거래일자", ascending=False).copy()
-            df_disp["거래일자"]       = df_disp["거래일자"].dt.strftime("%Y-%m-%d")
-            df_disp["거래금액(만원)"]  = df_disp["거래금액(만원)"].apply(lambda x: f"{x:,}")
-            df_disp["평당가(만원)"]    = df_disp["평당가(만원)"].apply(lambda x: f"{x:,}")
-            st.dataframe(df_disp, use_container_width=True, hide_index=True)
-
-            excel_sale = to_excel(df_sale.sort_values("거래일자", ascending=False))
-            st.download_button(
-                label="📥 매매 엑셀 다운로드",
-                data=excel_sale,
-                file_name=f"매매_{region_label}_{selected_month}_{prop_type}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        st.subheader("📊 연도별 동월 평균 거래금액 비교 (YoY)")
+        yoy_rows = []
+        for m in months_3:
+            df_m = filtered3_sale[m]
+            if not df_m.empty:
+                yoy_rows.append({
+                    "연도": YEAR_LABELS[m],
+                    "평균 거래금액(만원)": int(df_m["거래금액(만원)"].mean()),
+                    "color": YEAR_COLORS[m],
+                })
+        if yoy_rows:
+            df_yoy = pd.DataFrame(yoy_rows)
+            fig_yoy = px.bar(
+                df_yoy, x="연도", y="평균 거래금액(만원)",
+                color="연도",
+                color_discrete_map={r["연도"]: r["color"] for r in yoy_rows},
+                text="평균 거래금액(만원)",
+                title=f"{region_label} {prop_type} 동월 평균 거래금액 3개년 비교",
             )
+            fig_yoy.update_traces(texttemplate="%{text:,}만원", textposition="outside")
+            fig_yoy.update_layout(showlegend=False, xaxis_title="", yaxis_title="평균 거래금액(만원)")
+            st.plotly_chart(fig_yoy, use_container_width=True)
 
-# ── 전월세 섹션 ──────────────────────────────────────────────────
-if "전월세" in selected_trades:
-    area_label_rent = get_area_label("전월세", prop_type)
-    df_raw_rent = load_df("전월세")
-
-    if df_raw_rent.empty:
-        st.warning("전월세: 해당 조건의 거래 데이터가 없습니다.")
-    else:
-        df_rent = df_raw_rent[
-            (df_raw_rent["보증금(만원)"]     >= price_range[0]) &
-            (df_raw_rent["보증금(만원)"]     <= price_range[1]) &
-            (df_raw_rent[area_label_rent]    >= area_range[0])  &
-            (df_raw_rent[area_label_rent]    <= area_range[1])  &
-            (df_raw_rent["전세/월세"].isin(rent_filter))
-        ].copy()
-
-        if df_rent.empty:
-            st.warning("전월세: 필터 조건에 맞는 데이터가 없습니다.")
-        else:
-            st.markdown("---")
-            st.header("🔑 전월세 거래 현황")
-
-            total_cnt  = len(df_rent)
-            avg_dep    = int(df_rent["보증금(만원)"].mean())
-            avg_mon    = int(df_rent[df_rent["전세/월세"] == "월세"]["월세(만원)"].mean())                          if (df_rent["전세/월세"] == "월세").any() else 0
-            jeonse_pct = round((df_rent["전세/월세"] == "전세").sum() / total_cnt * 100, 1)
-
-            c1, c2, c3, c4 = st.columns(4)
-            c1.metric("총 거래건수", f"{total_cnt:,}건")
-            c2.metric("평균 보증금", f"{avg_dep:,}만원")
-            c3.metric("평균 월세",   f"{avg_mon:,}만원" if avg_mon > 0 else "-")
-            c4.metric("전세 비율",   f"{jeonse_pct}%")
-
-            st.subheader("📈 일자별 평균 보증금 추이")
-            df_daily_rent = df_rent.groupby(["거래일자", "전세/월세"])["보증금(만원)"].mean().reset_index()
-            fig1 = px.line(df_daily_rent, x="거래일자", y="보증금(만원)", color="전세/월세",
-                           markers=True,
-                           color_discrete_map={"전세": "#2563eb", "월세": "#f59e0b"},
-                           title=f"{region_label} {selected_month} {prop_type} 일자별 평균 보증금")
-            st.plotly_chart(fig1, use_container_width=True)
-
-            col_a, col_b = st.columns(2)
-            with col_a:
-                st.subheader("🥧 전세 / 월세 비율")
-                pie_data = df_rent["전세/월세"].value_counts().reset_index()
-                pie_data.columns = ["구분", "건수"]
-                fig_pie = px.pie(pie_data, names="구분", values="건수",
-                                 color="구분",
-                                 color_discrete_map={"전세": "#2563eb", "월세": "#f59e0b"})
-                fig_pie.update_traces(textposition="inside", textinfo="percent+label")
-                st.plotly_chart(fig_pie, use_container_width=True)
-            with col_b:
-                st.subheader("🏘️ 법정동별 거래 건수")
-                dong_cnt = df_rent["법정동"].value_counts().reset_index()
-                dong_cnt.columns = ["법정동", "거래건수"]
-                fig2 = px.bar(dong_cnt, x="법정동", y="거래건수", color="거래건수",
-                              color_continuous_scale="Blues")
-                st.plotly_chart(fig2, use_container_width=True)
-
-            st.subheader("💰 매물별 평균 보증금 TOP 10")
-            top10 = df_rent.groupby("매물명")["보증금(만원)"].mean().nlargest(10).reset_index()
-            fig3  = px.bar(top10, x="보증금(만원)", y="매물명", orientation="h",
-                           color="보증금(만원)", color_continuous_scale="Blues")
+        col_a, col_b = st.columns(2)
+        with col_a:
+            st.subheader("🏘️ 법정동별 거래 건수")
+            dong_cnt = df_sale["법정동"].value_counts().reset_index()
+            dong_cnt.columns = ["법정동", "거래건수"]
+            fig2 = px.bar(dong_cnt, x="법정동", y="거래건수",
+                          color="거래건수", color_continuous_scale="Blues")
+            st.plotly_chart(fig2, use_container_width=True)
+        with col_b:
+            st.subheader("💰 매물별 평균 거래금액 TOP 10")
+            apt_avg = df_sale.groupby("매물명")["거래금액(만원)"].mean().nlargest(10).reset_index()
+            fig3 = px.bar(apt_avg, x="거래금액(만원)", y="매물명", orientation="h",
+                          color="거래금액(만원)", color_continuous_scale="Reds")
             fig3.update_layout(yaxis={"categoryorder": "total ascending"})
             st.plotly_chart(fig3, use_container_width=True)
 
-            if (df_rent["전세/월세"] == "월세").any():
-                st.subheader("📊 월세 금액 분포")
-                df_mol = df_rent[df_rent["전세/월세"] == "월세"]
-                fig4   = px.histogram(df_mol, x="월세(만원)", nbins=30,
-                                       color_discrete_sequence=["#f59e0b"],
-                                       title="월세 금액 히스토그램")
-                st.plotly_chart(fig4, use_container_width=True)
-
-            st.subheader("📋 상세 거래 내역")
-            df_disp = df_rent.sort_values("거래일자", ascending=False).copy()
-            df_disp["거래일자"]    = df_disp["거래일자"].dt.strftime("%Y-%m-%d")
-            df_disp["보증금(만원)"] = df_disp["보증금(만원)"].apply(lambda x: f"{x:,}")
-            df_disp["월세(만원)"]   = df_disp["월세(만원)"].apply(lambda x: f"{x:,}")
-            df_disp["보증금 평당가"] = df_disp["보증금 평당가"].apply(lambda x: f"{x:,}")
-            st.dataframe(df_disp, use_container_width=True, hide_index=True)
-
-            excel_rent = to_excel(df_rent.sort_values("거래일자", ascending=False))
-            st.download_button(
-                label="📥 전월세 엑셀 다운로드",
-                data=excel_rent,
-                file_name=f"전월세_{region_label}_{selected_month}_{prop_type}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        st.subheader("🔍 단지별 3개년 시세 흐름")
+        all_sale_3 = pd.concat(
+            [df.assign(연도=YEAR_LABELS[m]) for m, df in filtered3_sale.items() if not df.empty],
+            ignore_index=True
+        )
+        if not all_sale_3.empty:
+            unit_list = sorted(all_sale_3["매물명"].dropna().unique().tolist())
+            sel_unit  = st.selectbox("단지(매물명) 선택", unit_list, key="scatter_sale")
+            df_unit   = all_sale_3[all_sale_3["매물명"] == sel_unit]
+            fig_sc = px.scatter(
+                df_unit, x="거래일자", y="거래금액(만원)",
+                color="연도",
+                color_discrete_map={YEAR_LABELS[m]: YEAR_COLORS[m] for m in months_3},
+                size_max=12, opacity=0.85,
+                hover_data={"층": True, area_label_sale: True},
+                title=f"[{sel_unit}] 거래일자별 실거래가 (3개년)",
             )
+            fig_sc.update_traces(marker=dict(size=10))
+            fig_sc.update_layout(xaxis_title="거래일자", yaxis_title="거래금액(만원)")
+            st.plotly_chart(fig_sc, use_container_width=True)
+
+        st.subheader("📋 상세 거래 내역 (기준월)")
+        df_disp = df_sale.sort_values("거래일자", ascending=False).copy()
+        df_disp["거래일자"]      = df_disp["거래일자"].dt.strftime("%Y-%m-%d")
+        df_disp["거래금액(만원)"] = df_disp["거래금액(만원)"].apply(lambda x: f"{x:,}")
+        df_disp["평당가(만원)"]   = df_disp["평당가(만원)"].apply(lambda x: f"{x:,}")
+        st.dataframe(df_disp, use_container_width=True, hide_index=True)
+        excel_sale = to_excel(df_sale.sort_values("거래일자", ascending=False))
+        st.download_button(
+            label="📥 매매 엑셀 다운로드",
+            data=excel_sale,
+            file_name=f"매매_{region_label}_{selected_month}_{prop_type}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+
+# ════════════════════════════════════════════════════
+#  전월세 섹션
+# ════════════════════════════════════════════════════
+if "전월세" in selected_trades:
+    area_label_rent = get_area_label("전월세", prop_type)
+    raw3_rent = load_3years("전월세")
+
+    def filter_rent(df):
+        if df.empty: return df
+        return df[
+            (df["보증금(만원)"]  >= price_range[0]) &
+            (df["보증금(만원)"]  <= price_range[1]) &
+            (df[area_label_rent] >= area_range[0])  &
+            (df[area_label_rent] <= area_range[1])  &
+            (df["전세/월세"].isin(rent_filter))
+        ].copy()
+
+    filtered3_rent = {m: filter_rent(raw3_rent[m]) for m in months_3}
+    df_rent   = filtered3_rent[months_3[0]]
+    df_rent_1 = filtered3_rent[months_3[1]]
+
+    if df_rent.empty:
+        st.warning("전월세(기준월): 해당 조건의 거래 데이터가 없습니다.")
+    else:
+        st.markdown("---")
+        st.header("🔑 전월세 거래 현황")
+
+        total_cnt  = len(df_rent)
+        avg_dep    = int(df_rent["보증금(만원)"].mean())
+        avg_mon    = int(df_rent[df_rent["전세/월세"]=="월세"]["월세(만원)"].mean()) \
+                     if (df_rent["전세/월세"]=="월세").any() else 0
+        jeonse_pct = round((df_rent["전세/월세"]=="전세").sum() / total_cnt * 100, 1)
+        dep_1y = int(df_rent_1["보증금(만원)"].mean()) if not df_rent_1.empty else None
+        cnt_1y = len(df_rent_1) if not df_rent_1.empty else None
+
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("총 거래건수", f"{total_cnt:,}건",  delta=_delta_str(total_cnt, cnt_1y, "건"))
+        c2.metric("평균 보증금", f"{avg_dep:,}만원",   delta=_delta_str(avg_dep, dep_1y))
+        c3.metric("평균 월세",   f"{avg_mon:,}만원" if avg_mon > 0 else "-")
+        c4.metric("전세 비율",   f"{jeonse_pct}%")
+
+        st.subheader("📈 일자별 평균 보증금 추이")
+        df_daily_rent = df_rent.groupby(["거래일자", "전세/월세"])["보증금(만원)"].mean().reset_index()
+        fig1 = px.line(df_daily_rent, x="거래일자", y="보증금(만원)", color="전세/월세",
+                       markers=True,
+                       color_discrete_map={"전세": "#2563eb", "월세": "#f59e0b"},
+                       title=f"{region_label} {selected_month} {prop_type} 일자별 평균 보증금")
+        st.plotly_chart(fig1, use_container_width=True)
+
+        st.subheader("📊 연도별 동월 평균 보증금 비교 (YoY)")
+        yoy_rows = []
+        for m in months_3:
+            df_m = filtered3_rent[m]
+            if not df_m.empty:
+                yoy_rows.append({
+                    "연도": YEAR_LABELS[m],
+                    "평균 보증금(만원)": int(df_m["보증금(만원)"].mean()),
+                    "color": YEAR_COLORS[m],
+                })
+        if yoy_rows:
+            df_yoy = pd.DataFrame(yoy_rows)
+            fig_yoy = px.bar(
+                df_yoy, x="연도", y="평균 보증금(만원)",
+                color="연도",
+                color_discrete_map={r["연도"]: r["color"] for r in yoy_rows},
+                text="평균 보증금(만원)",
+                title=f"{region_label} {prop_type} 동월 평균 보증금 3개년 비교",
+            )
+            fig_yoy.update_traces(texttemplate="%{text:,}만원", textposition="outside")
+            fig_yoy.update_layout(showlegend=False, xaxis_title="", yaxis_title="평균 보증금(만원)")
+            st.plotly_chart(fig_yoy, use_container_width=True)
+
+        col_a, col_b = st.columns(2)
+        with col_a:
+            st.subheader("🥧 전세 / 월세 비율")
+            pie_data = df_rent["전세/월세"].value_counts().reset_index()
+            pie_data.columns = ["구분", "건수"]
+            fig_pie = px.pie(pie_data, names="구분", values="건수", color="구분",
+                             color_discrete_map={"전세": "#2563eb", "월세": "#f59e0b"})
+            fig_pie.update_traces(textposition="inside", textinfo="percent+label")
+            st.plotly_chart(fig_pie, use_container_width=True)
+        with col_b:
+            st.subheader("🏘️ 법정동별 거래 건수")
+            dong_cnt = df_rent["법정동"].value_counts().reset_index()
+            dong_cnt.columns = ["법정동", "거래건수"]
+            fig2 = px.bar(dong_cnt, x="법정동", y="거래건수",
+                          color="거래건수", color_continuous_scale="Blues")
+            st.plotly_chart(fig2, use_container_width=True)
+
+        st.subheader("💰 매물별 평균 보증금 TOP 10")
+        top10 = df_rent.groupby("매물명")["보증금(만원)"].mean().nlargest(10).reset_index()
+        fig3  = px.bar(top10, x="보증금(만원)", y="매물명", orientation="h",
+                       color="보증금(만원)", color_continuous_scale="Blues")
+        fig3.update_layout(yaxis={"categoryorder": "total ascending"})
+        st.plotly_chart(fig3, use_container_width=True)
+
+        if (df_rent["전세/월세"] == "월세").any():
+            st.subheader("📊 월세 금액 분포")
+            df_mol = df_rent[df_rent["전세/월세"] == "월세"]
+            fig4   = px.histogram(df_mol, x="월세(만원)", nbins=30,
+                                   color_discrete_sequence=["#f59e0b"],
+                                   title="월세 금액 히스토그램")
+            st.plotly_chart(fig4, use_container_width=True)
+
+        st.subheader("🔍 단지별 3개년 보증금 흐름")
+        all_rent_3 = pd.concat(
+            [df.assign(연도=YEAR_LABELS[m]) for m, df in filtered3_rent.items() if not df.empty],
+            ignore_index=True
+        )
+        if not all_rent_3.empty:
+            unit_list_r = sorted(all_rent_3["매물명"].dropna().unique().tolist())
+            sel_unit_r  = st.selectbox("단지(매물명) 선택", unit_list_r, key="scatter_rent")
+            df_unit_r   = all_rent_3[all_rent_3["매물명"] == sel_unit_r]
+            fig_sc = px.scatter(
+                df_unit_r, x="거래일자", y="보증금(만원)",
+                color="연도",
+                color_discrete_map={YEAR_LABELS[m]: YEAR_COLORS[m] for m in months_3},
+                symbol="전세/월세",
+                size_max=12, opacity=0.85,
+                hover_data={"층": True, "월세(만원)": True, area_label_rent: True},
+                title=f"[{sel_unit_r}] 보증금 흐름 (3개년)",
+            )
+            fig_sc.update_traces(marker=dict(size=10))
+            fig_sc.update_layout(xaxis_title="거래일자", yaxis_title="보증금(만원)")
+            st.plotly_chart(fig_sc, use_container_width=True)
+
+        st.subheader("📋 상세 거래 내역 (기준월)")
+        df_disp = df_rent.sort_values("거래일자", ascending=False).copy()
+        df_disp["거래일자"]    = df_disp["거래일자"].dt.strftime("%Y-%m-%d")
+        df_disp["보증금(만원)"] = df_disp["보증금(만원)"].apply(lambda x: f"{x:,}")
+        df_disp["월세(만원)"]   = df_disp["월세(만원)"].apply(lambda x: f"{x:,}")
+        df_disp["보증금 평당가"] = df_disp["보증금 평당가"].apply(lambda x: f"{x:,}")
+        st.dataframe(df_disp, use_container_width=True, hide_index=True)
+        excel_rent = to_excel(df_rent.sort_values("거래일자", ascending=False))
+        st.download_button(
+            label="📥 전월세 엑셀 다운로드",
+            data=excel_rent,
+            file_name=f"전월세_{region_label}_{selected_month}_{prop_type}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
